@@ -1,5 +1,5 @@
 ﻿using System;
-using Database.Context;
+using Database.Context.AppContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
