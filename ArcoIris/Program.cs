@@ -15,6 +15,17 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "ArcoIris API", Version = "v1" });
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(
+        builder =>
+        {
+            builder.AllowAnyOrigin() // This allows any origin
+                   .AllowAnyMethod() // This allows any HTTP method
+                   .AllowAnyHeader(); // This allows any header
+        });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -35,6 +46,7 @@ else
 
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseCors();
 app.UseAuthorization();
 
 app.MapControllers();
