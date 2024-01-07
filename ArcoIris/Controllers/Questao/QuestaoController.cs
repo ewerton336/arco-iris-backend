@@ -20,14 +20,14 @@ namespace ArcoIris.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Questao>>> GetQuestoes()
         {
-            return await _context.Questoes.ToListAsync();
+            return await _context.Questoes.Include(x=>x.Alternativas).ToListAsync();
         }
 
         // GET: api/Questao/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Questao>> GetQuestao(int id)
         {
-            var questao = await _context.Questoes.FindAsync(id);
+            var questao = await _context.Questoes.Include(x => x.Alternativas).FirstOrDefaultAsync(x=>x.Id == id);
 
             if (questao == null)
             {
