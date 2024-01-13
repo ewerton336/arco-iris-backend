@@ -5,7 +5,7 @@ namespace Database.Context
     public class Alternativa
     {
         public int Id { get; set; }
-        public int QuestoId { get; set; }
+        public int QuestaoId { get; set; }
 
         [JsonIgnore]
         public Questao? Questao { get; set; }

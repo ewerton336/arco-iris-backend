@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using ArcoIris.Context.AppContext.Database.Context;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Database.Context.AppContext
@@ -8,6 +9,7 @@ namespace Database.Context.AppContext
         public DbSet<Alternativa> Alternativas { get; set; }
         public DbSet<Aluno> Alunos { get; set; }
         public DbSet<Questao> Questoes { get; set; }
+        public DbSet<Prova> Provas { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -32,7 +34,16 @@ namespace Database.Context.AppContext
             modelBuilder.Entity<Alternativa>()
                 .HasOne(a => a.Questao)
                 .WithMany(q => q.Alternativas)
-                .HasForeignKey(a => a.QuestoId);
+                .HasForeignKey(a => a.QuestaoId);
+
+            modelBuilder.Entity<Prova>()
+                .HasKey(p => p.Id);
+
+            modelBuilder.Entity<Prova>()
+                .HasOne(p => p.Aluno);
+
+            modelBuilder.Entity<Prova>()
+                .HasMany(p => p.Questoes);
         }
     }
 }
