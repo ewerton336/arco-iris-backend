@@ -1,6 +1,4 @@
-﻿using ArcoIris.Context.AppContext.Database.Context;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace Database.Context.AppContext
 {
@@ -35,15 +33,6 @@ namespace Database.Context.AppContext
                 .HasOne(a => a.Questao)
                 .WithMany(q => q.Alternativas)
                 .HasForeignKey(a => a.QuestaoId);
-
-            modelBuilder.Entity<Prova>()
-                .HasKey(p => p.Id);
-
-            modelBuilder.Entity<Prova>()
-                .HasOne(p => p.Aluno);
-
-            modelBuilder.Entity<Prova>()
-                .HasMany(p => p.Questoes);
         }
     }
 }

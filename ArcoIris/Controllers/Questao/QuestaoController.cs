@@ -20,7 +20,7 @@ namespace ArcoIris.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Questao>>> GetQuestoes()
         {
-            return await _context.Questoes.Include(x=>x.Alternativas).ToListAsync();
+                return await _context.Questoes.Include(x => x.Alternativas).ToListAsync();
         }
 
         // GET: api/Questao/5

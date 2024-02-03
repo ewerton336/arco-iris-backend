@@ -1,12 +1,9 @@
-﻿using ArcoIris.Context.AppContext.Database.Context;
-using Database.Context;
+﻿using Database.Context;
 using Database.Context.AppContext;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace ArcoIris.Controllers
+namespace ArcoIris.Controllers.Prova
 {
     [Route("api/Provas")]
     [ApiController]
@@ -19,119 +16,102 @@ namespace ArcoIris.Controllers
             _context = context;
         }
 
-        // GET: api/Prova
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Prova>>> GetProvas()
+        // POST: api/Provas/IniciarProva
+        [HttpPost("IniciarProva")]
+        public async Task<ActionResult<Database.Context.Prova>> IniciarProva([FromBody] int alunoId)
         {
-            return await _context.Provas
-                                 .Include(p => p.Questoes)
-                                 .ToListAsync();
-        }
-
-        // GET: api/Prova/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Prova>> GetProva(int id)
-        {
-            var prova = await _context.Provas
-                                      .Include(p => p.Questoes)
-                                      .FirstOrDefaultAsync(p => p.Id == id);
-
-            if (prova == null)
-            {
-                return NotFound();
-            }
-
-            return prova;
-        }
-
-        // POST: api/Prova
-        [HttpPost]
-        public async Task<ActionResult<Prova>> PostProva([FromBody] Prova prova)
-        {
-            // Calcula a quantidade de acertos
-            prova.QuantidadeAcertos = CalcularAcertos(prova);
-
-            _context.Provas.Add(prova);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetProva), new { id = prova.Id }, prova);
-        }
-
-        // PUT: api/Prova/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutProva(int id, [FromBody] Prova prova)
-        {
-            if (id != prova.Id)
-            {
-                return BadRequest();
-            }
-
-            prova.QuantidadeAcertos = CalcularAcertos(prova);
-
-            _context.Entry(prova).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ProvaExists(id))
+                var aluno = await _context.Alunos.FindAsync(alunoId);
+                if (aluno == null)
                 {
-                    return NotFound();
+                    return NotFound("Aluno não encontrado.");
                 }
-                else
-                {
-                    throw;
-                }
-            }
 
-            return NoContent();
+                var questoes = await _context.Questoes.Include(q => q.Alternativas).ToListAsync();
+
+                var prova = new Database.Context.Prova
+                {
+                    AlunoId = alunoId,
+                    QuestoesRespostas = questoes.Select(q => new QuestaoResposta { QuestaoId = q.Id }).ToList()
+                };
+
+                _context.Provas.Add(prova);
+                await _context.SaveChangesAsync();
+
+                // Retorna as questões da prova sem as respostas corretas
+                var provaParaAluno = new Database.Context.Prova
+                {
+                    Id = prova.Id,
+                };
+
+                return Ok(provaParaAluno);
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
         }
 
-        // DELETE: api/Prova/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProva(int id)
+        [HttpGet("GetProva/{id}")]
+        public async Task<ActionResult<Database.Context.Prova>> GetProva(int id)
         {
-            var prova = await _context.Provas.FindAsync(id);
+            try
+            {
+                var prova = await _context.Provas
+             .Include(p => p.QuestoesRespostas)
+                 .ThenInclude(qr => qr.Questao)
+                     .ThenInclude(q => q.Alternativas)
+             .FirstOrDefaultAsync(p => p.Id == id);
+
+                if (prova == null)
+                {
+                    return NotFound($"Prova com ID {id} não encontrada.");
+                }
+
+                return Ok(prova);
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+        }
+
+
+
+        // POST: api/Provas/SubmeterProva
+        [HttpPost("SubmeterProva")]
+        public async Task<ActionResult> SubmeterProva([FromBody] Database.Context.Prova provaSubmetida)
+        {
+            var prova = await _context.Provas.Include(p => p.QuestoesRespostas)
+                                              .ThenInclude(qr => qr.Questao)
+                                              .ThenInclude(q => q.Alternativas)
+                                              .FirstOrDefaultAsync(p => p.Id == provaSubmetida.Id);
+
             if (prova == null)
             {
-                return NotFound();
+                return NotFound("Prova não encontrada.");
             }
 
-            _context.Provas.Remove(prova);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool ProvaExists(int id)
-        {
-            return _context.Provas.Any(e => e.Id == id);
-        }
-
-        private int CalcularAcertos(Prova prova)
-        {
             int acertos = 0;
-
-            foreach (var questao in prova.Questoes)
+            foreach (var resposta in provaSubmetida.QuestoesRespostas)
             {
-                var alternativas = questao.Alternativas;
-                 
-
-                var alternativasBase = _context.Alternativas
-                                               .Where(a => a.QuestaoId == questao.Id)
-                                               .ToList();
-
-                if (alternativasBase.Count(x=>x.Correta) == alternativas.Count(x=>x.Correta)
-                    && alternativasBase.Count(x=>!x.Correta) == alternativas.Count(x=>!x.Correta))
+                var questaoCorreta = prova.QuestoesRespostas.FirstOrDefault(qr => qr.QuestaoId == resposta.QuestaoId)?.Questao.Alternativas.FirstOrDefault(a => a.Id == resposta.AlternativaEscolhidaId);
+                if (questaoCorreta != null && questaoCorreta.Correta)
                 {
                     acertos++;
                 }
             }
 
-            return acertos;
-        }
+            prova.QuantidadeAcertos = acertos;
+            prova.QuantidadeErros = prova.QuestoesRespostas.Count - acertos;
+            prova.Nota = (decimal)acertos / prova.QuestoesRespostas.Count * 10;
 
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Nota = prova.Nota, QuantidadeAcertos = prova.QuantidadeAcertos, QuantidadeErros = prova.QuantidadeErros });
+        }
     }
 }
